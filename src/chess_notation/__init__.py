@@ -1,3 +1,4 @@
+from .fen import CastlingRights, FenPosition, parse_fen, to_fen
 from .san import ParsedMove, parse_san, to_san
 from .squares import (
     file_of,
@@ -9,8 +10,12 @@ from .squares import (
 )
 
 __all__ = [
+    "CastlingRights",
+    "FenPosition",
     "ParsedMove",
+    "parse_fen",
     "parse_san",
+    "to_fen",
     "to_san",
     "file_of",
     "index_to_square",

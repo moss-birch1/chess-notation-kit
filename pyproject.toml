@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chess-notation-kit"
 version = "0.1.0"
-description = "Pure functions for converting between chess notations (algebraic squares, SAN)"
+description = "Pure functions for converting between chess notations (algebraic squares, SAN, FEN)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

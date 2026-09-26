@@ -1,12 +1,16 @@
 import unittest
 
 from chess_notation import (
+    CastlingRights,
+    FenPosition,
     ParsedMove,
     index_to_square,
     is_valid_square,
+    parse_fen,
     parse_san,
     square_color,
     square_to_index,
+    to_fen,
     to_san,
 )
 
@@ -99,6 +103,84 @@ class SanParsingTests(unittest.TestCase):
             is_castle_queenside=False,
         )
         self.assertEqual(to_san(parsed), "R1a3")
+
+
+class FenParsingTests(unittest.TestCase):
+    STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+    def test_starting_position_round_trip(self) -> None:
+        position = parse_fen(self.STARTING_FEN)
+        self.assertEqual(position.board[square_to_index("e1")], "K")
+        self.assertEqual(position.board[square_to_index("e8")], "k")
+        self.assertIsNone(position.board[square_to_index("e4")])
+        self.assertEqual(position.active_color, "w")
+        self.assertEqual(
+            position.castling_rights,
+            CastlingRights(True, True, True, True),
+        )
+        self.assertIsNone(position.en_passant_square)
+        self.assertEqual(position.halfmove_clock, 0)
+        self.assertEqual(position.fullmove_number, 1)
+        self.assertEqual(to_fen(position), self.STARTING_FEN)
+
+    def test_en_passant_and_partial_castling(self) -> None:
+        fen = "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w Kq d6 0 3"
+        position = parse_fen(fen)
+        self.assertEqual(position.en_passant_square, "d6")
+        self.assertEqual(
+            position.castling_rights,
+            CastlingRights(True, False, False, True),
+        )
+        self.assertEqual(to_fen(position), fen)
+
+    def test_no_castling_rights(self) -> None:
+        fen = "8/8/8/4k3/8/8/8/4K3 b - - 12 34"
+        position = parse_fen(fen)
+        self.assertEqual(
+            position.castling_rights,
+            CastlingRights(False, False, False, False),
+        )
+        self.assertEqual(to_fen(position), fen)
+
+    def test_wrong_field_count_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -")
+
+    def test_rank_not_summing_to_eight_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPP/RNBQKBNR w KQkq - 0 1")
+
+    def test_bad_active_color_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_fen("8/8/8/8/8/8/8/8 x - - 0 1")
+
+    def test_duplicate_castling_letter_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_fen("8/8/8/8/8/8/8/8 w KK - 0 1")
+
+    def test_bad_en_passant_square_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_fen("8/8/8/8/8/8/8/8 w - z9 0 1")
+
+    def test_non_numeric_move_counters_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_fen("8/8/8/8/8/8/8/8 w - - -1 1")
+        with self.assertRaises(ValueError):
+            parse_fen("8/8/8/8/8/8/8/8 w - - 0 0")
+
+    def test_to_fen_is_pure_reconstruction(self) -> None:
+        board = [None] * 64
+        board[square_to_index("e1")] = "K"
+        board[square_to_index("e8")] = "k"
+        position = FenPosition(
+            board=tuple(board),
+            active_color="w",
+            castling_rights=CastlingRights(False, False, False, False),
+            en_passant_square=None,
+            halfmove_clock=5,
+            fullmove_number=10,
+        )
+        self.assertEqual(to_fen(position), "4k3/8/8/8/8/8/8/4K3 w - - 5 10")
 
 
 if __name__ == "__main__":
